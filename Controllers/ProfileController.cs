@@ -2,68 +2,87 @@ using Data;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace csharp_crud_api.Controllers
+namespace csharp_crud_api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProfileController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ProfileController : ControllerBase
+    private readonly ProfileContext _context;
+
+    public ProfileController(ProfileContext context)
     {
-        private readonly ProfileContext _context;
+        _context = context;
+    }
 
-        public ProfileController(ProfileContext context)
+    // GET: api/profiles
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Profile>>> GetProfile()
+    {
+        return await _context.Profiles.ToListAsync();
+    }
+
+    // GET: api/profiles/5
+    [HttpGet("{per_id}")]
+    public async Task<ActionResult<Profile>> GeProfile(int per_id)
+    {
+        var profile = await _context.Profiles.FindAsync(per_id);
+
+        if (profile == null)
         {
-            _context = context;
+            return NotFound();
         }
 
-        // GET api/profile
-        [HttpGet]
-        public ActionResult<IEnumerable<Profile>> GetProfiles()
+        return profile;
+    }
+
+    // POST api/profiles
+    [HttpPost]
+    public async Task<ActionResult<Profile>> PostProfile(Profile profile)
+    {
+        _context.Profiles.Add(profile);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetProfile), new { per_id = profile.per_id }, profile);
+    }
+
+    // PUT api/profiles/5
+    [HttpPut("{per_id}")]
+    public async Task<IActionResult> PutProfile(int per_id, Profile profile)
+    {
+        if (per_id != profile.per_id)
         {
-            var profiles = _context.Profiles.ToList();
-            return Ok(profiles);
+            return BadRequest();
         }
 
-        // GET api/profile/{id}
-        [HttpGet("{id}")]
-        public ActionResult<Profile> GetProfile(string id)
+        _context.Entry(profile).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // DELETE api/profiles/5
+    [HttpDelete("{per_id}")]
+    public async Task<IActionResult> DeletProfile(int per_id)
+    {
+        var profile = await _context.Profiles.FindAsync(per_id);
+
+        if (profile == null)
         {
-            var profile = _context.Profiles.FirstOrDefault(p => p.PER_CODIGO == id);
-            if (profile == null)
-            {
-                return NotFound();
-            }
-            return Ok(profile);
+            return NotFound();
         }
 
-        // POST api/profile
-        [HttpPost]
-        public ActionResult<Profile> CreateProfile(Profile profile)
-        {
-            profile.FECHA_CREACION = DateTime.Now;
-            _context.Profiles.Add(profile);
-            _context.SaveChanges();
-            return CreatedAtAction(nameof(GetProfile), new { id = profile.PER_CODIGO }, profile);
-        }
+        _context.Profiles.Remove(profile);
+        await _context.SaveChangesAsync();
 
-        // PUT api/profile/{id}
-        [HttpPut("{id}")]
-        public IActionResult UpdateProfile(string id, Profile updatedProfile)
-        {
-            var profile = _context.Profiles.FirstOrDefault(p => p.PER_CODIGO == id);
-            if (profile == null)
-            {
-                return NotFound();
-            }
-            profile.PER_NOMBRE = updatedProfile.PER_NOMBRE;
-            profile.PER_DESCRIPCION = updatedProfile.PER_DESCRIPCION;
-            profile.MODIFICADO_POR = updatedProfile.MODIFICADO_POR;
-            profile.FECHA_MODIFICADO = DateTime.Now;
-            _context.SaveChanges();
-            return NoContent();
-        }
+        return NoContent();
+    }
+
+    // dummy endpoint to test the database connection
+    [HttpGet("test")]
+    public string Test()
+    {
+        return "Hello World!";
     }
 }
